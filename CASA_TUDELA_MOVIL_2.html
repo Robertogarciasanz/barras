@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Casa Tudela">
+<meta name="theme-color" content="#001f54">
+<title>Casa Tudela</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--azul:#001f54;--verde:#10b981;--rojo:#ef4444;--gris:#f1f5f9;--card:#fff}
+html,body{margin:0;padding:0;font-family:'Segoe UI',sans-serif;background:#0f172a;color:#1e293b;height:100%}
+body{display:flex;flex-direction:column;max-width:480px;margin:auto;min-height:100vh;background:var(--gris)}
+
+/* HEADER */
+#header{background:var(--azul);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,0.3)}
+#header h1{margin:0;font-size:18px;font-weight:800;letter-spacing:.5px}
+#header small{font-size:10px;opacity:.7;display:block}
+#reloj{font-size:11px;font-family:monospace;opacity:.85}
+
+/* TABS */
+#tabs{display:flex;background:var(--azul);border-top:1px solid rgba(255,255,255,0.1)}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.55);cursor:pointer;border-bottom:3px solid transparent;transition:.2s}
+.tab.active{color:#fff;border-bottom-color:var(--verde)}
+
+/* VISTAS */
+.vista{display:none;flex:1;flex-direction:column;padding:14px;gap:12px;overflow-y:auto}
+.vista.activa{display:flex}
+
+/* ESCÁNER */
+#scanner-wrap{background:#000;border-radius:16px;overflow:hidden;position:relative;width:100%;aspect-ratio:4/3}
+#scanner-wrap video{width:100%;height:100%;object-fit:cover}
+#scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#scanner-linea{width:75%;height:2px;background:var(--verde);box-shadow:0 0 8px var(--verde);animation:scan 2s linear infinite}
+@keyframes scan{0%,100%{top:20%}50%{top:80%}}
+#scanner-info{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#fff;font-size:12px;background:rgba(0,0,0,.5);padding:5px}
+#btn-camara{width:100%;padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;cursor:pointer;background:var(--verde);color:#fff;transition:.2s}
+#btn-camara.activo{background:var(--rojo)}
+
+/* ENTRADA MANUAL */
+.card{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+.fila{display:grid;gap:8px}
+.fila-2{grid-template-columns:1fr 1fr}
+.fila-3{grid-template-columns:2fr 1fr 1fr}
+label{font-size:10px;font-weight:800;color:var(--azul);margin-bottom:3px;display:block}
+input,select{width:100%;padding:11px 10px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;outline:none;background:#fff}
+input:focus,select:focus{border-color:var(--azul)}
+.btn{width:100%;padding:13px;border-radius:12px;border:none;font-weight:800;font-size:14px;cursor:pointer;transition:.15s;letter-spacing:.3px}
+.btn-verde{background:var(--verde);color:#fff}
+.btn-azul{background:var(--azul);color:#fff}
+.btn-sm{padding:6px 10px;font-size:11px;border-radius:8px;width:auto}
+
+/* CESTA */
+#total-box{background:var(--azul);color:#fff;border-radius:16px;padding:16px;text-align:center}
+#total-box .monto{font-size:42px;font-weight:900;color:var(--verde);display:block;line-height:1.1}
+#total-box small{font-size:12px;opacity:.75}
+#tabla-cesta{width:100%;border-collapse:collapse}
+#tabla-cesta th{font-size:10px;color:var(--azul);font-weight:800;padding:6px 4px;border-bottom:2px solid #e2e8f0;text-align:left}
+#tabla-cesta td{padding:8px 4px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.borrar-item{background:none;border:none;color:var(--rojo);font-size:17px;cursor:pointer;padding:2px 6px}
+
+/* HISTORIAL */
+.sale-row{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center}
+.sale-row .monto-h{font-weight:800;color:var(--verde);font-size:16px}
+.sale-row small{color:#64748b;font-size:11px}
+#total-dia-box{background:var(--verde);color:#fff;border-radius:14px;padding:14px;text-align:center;font-size:22px;font-weight:900}
+
+/* INVENTARIO */
+.prod-row{background:#fff;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.prod-row .nom{font-size:13px;font-weight:700;color:var(--azul)}
+.prod-row .cod-mini{font-size:10px;color:#94a3b8;font-family:monospace}
+.prod-row input{width:80px;text-align:right;padding:7px 8px;font-size:13px;font-weight:700}
+
+/* TOAST */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,41,59,.95);color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;white-space:nowrap}
+#toast.show{opacity:1}
+
+/* BARRA COBRAR */
+#barra-cobrar{background:#fff;border-top:1px solid #e2e8f0;padding:10px 14px;display:flex;gap:8px;position:sticky;bottom:0}
+#barra-cobrar .btn{flex:1;padding:14px}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div><h1>🏰 Casa Tudela</h1><small>Roberto García Sanz</small></div>
+  <div id="reloj"></div>
+</div>
+
+<div id="tabs">
+  <div class="tab active" onclick="irTab('venta')">🛒 Venta</div>
+  <div class="tab" onclick="irTab('historial')">📊 Caja</div>
+  <div class="tab" onclick="irTab('inventario')">📦 Stock</div>
+</div>
+
+<!-- ═══════════════ VISTA VENTA ═══════════════ -->
+<div class="vista activa" id="vista-venta">
+
+  <div class="card">
+    <div id="scanner-wrap" style="display:none">
+      <div id="scanner-cam"></div>
+      <div id="scanner-overlay"><div id="scanner-linea"></div></div>
+      <div id="scanner-info">Apunta el código de barras</div>
+    </div>
+    <button id="btn-camara" class="btn btn-verde" onclick="toggleCamara()">📷 ACTIVAR ESCÁNER</button>
+  </div>
+
+  <div class="card">
+    <div class="fila" style="margin-bottom:8px">
+      <div><label>Código de barras</label><input id="p-cod" type="text" inputmode="numeric" placeholder="Escanea o escribe el código" onkeypress="if(event.key==='Enter')buscar()"></div>
+    </div>
+    <div class="fila fila-3" style="margin-bottom:10px">
+      <div><label>Nombre producto</label><input id="p-nom" type="text" placeholder="Descripción"></div>
+      <div><label>Precio €</label><input id="p-pre" type="number" step="0.01" inputmode="decimal" placeholder="0.00" onkeypress="if(event.key==='Enter')añadirManual()"></div>
+      <div><label>IVA</label><select id="p-iva"><option value="10">10%</option><option value="4">4%</option><option value="21">21%</option></select></div>
+    </div>
+    <button class="btn btn-azul" onclick="añadirManual()">＋ AÑADIR A CESTA</button>
+  </div>
+
+  <div id="total-box">
+    <small>TOTAL COMPRA</small>
+    <span class="monto" id="v-total">0,00 €</span>
+    <span id="v-items" style="font-size:12px;opacity:.75">0 artículos</span>
+  </div>
+
+  <div class="card" style="padding:10px">
+    <table id="tabla-cesta">
+      <thead><tr><th>Cant.</th><th>Producto</th><th>IVA</th><th style="text-align:right">Total</th><th></th></tr></thead>
+      <tbody id="cuerpo-cesta"></tbody>
+    </table>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+<!-- barra fija cobrar -->
+<div id="barra-cobrar">
+  <button class="btn btn-verde" onclick="cobrar()">✅ COBRAR</button>
+  <button class="btn btn-azul btn-sm" onclick="handlePrint()" style="flex:0;white-space:nowrap">🖨 Ticket</button>
+  <button class="btn" style="flex:0;background:#e2e8f0;color:#475569;white-space:nowrap" onclick="limpiarCesta()">🗑</button>
+</div>
+
+<!-- ═══════════════ VISTA HISTORIAL ═══════════════ -->
+<div class="vista" id="vista-historial">
+  <div id="total-dia-box">💰 HOY: <span id="hoy-total">0,00 €</span></div>
+  <button class="btn btn-azul" onclick="descargarExcel()">📥 Descargar Excel</button>
+  <div id="lista-historial" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- ═══════════════ VISTA INVENTARIO ═══════════════ -->
+<div class="vista" id="vista-inventario">
+  <div id="lista-inventario" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<div id="toast"></div>
+
+<div id="ticket-imprimible" style="display:none">
+  <center><strong>🏰 CASA TUDELA</strong><br><span id="t-fecha"></span><hr></center>
+  <table style="width:100%;font-family:monospace;font-size:12px"><tbody id="t-lista"></tbody></table>
+  <hr><div style="text-align:right;font-weight:bold">TOTAL: <span id="t-total"></span></div>
+  <br><center>¡Gracias por su compra!</center>
+</div>
+@media print{body>*:not(#ticket-imprimible){display:none!important}#ticket-imprimible{display:block!important;position:absolute;top:0;left:0;width:80mm}}
+
+<script>
+// ─── INVENTARIO BASE ─────────────────────────────────────────────────────────
+const BASE = [
+  {cod:"8410436392693",nom:"Lejia Multiusos 2L",pre:3.60,iva:10},
+  {cod:"4084500617421",nom:"Fairy 820ml",pre:3.95,iva:10},
+  {cod:"8413402980306",nom:"Agua San Joaquín 1.5L",pre:0.75,iva:10},
+  {cod:"8410379942788",nom:"Leche Auchan 1L",pre:1.56,iva:10},
+  {cod:"8435177059216",nom:"Nueces Cáscara Auchan",pre:3.45,iva:10},
+  {cod:"8433111000188",nom:"Papel Cocina Auchan 90m",pre:2.90,iva:10},
+  {cod:"8437015354477",nom:"12 Huevos Gallina C",pre:3.69,iva:4},
+  {cod:"8410500025809",nom:"Oikos Lima Limón x4",pre:2.49,iva:4},
+  {cod:"8410352208337",nom:"Aceite Oliva Auchan 1L",pre:4.35,iva:4},
+  {cod:"8429583008760",nom:"Bonito Norte MSC",pre:7.52,iva:10},
+  {cod:"8411293020170",nom:"Mantequilla c/Sal 250g",pre:2.24,iva:10},
+  {cod:"8410416014614",nom:"Tomate Frito 550g",pre:0.88,iva:10},
+  {cod:"8435177019210",nom:"Naranjas Lane x4kg",pre:4.99,iva:4},
+  {cod:"8411921509855",nom:"Bolsa 50x60cm",pre:0.12,iva:21},
+  {cod:"2073228001751",nom:"Pan París",pre:1.75,iva:4}
+];
+
+// ─── ESTADO ──────────────────────────────────────────────────────────────────
+let inventario = [], carrito = [], camaraActiva = false, ultimoCod = null, timerCod = null;
+
+function cargarInventario() {
+  const guardado = JSON.parse(localStorage.getItem('inv_tudela') || 'null');
+  if (guardado) {
+    // Fusionar: añadir productos base que no estén ya
+    const mapa = {};
+    guardado.forEach(p => mapa[p.cod] = p);
+    BASE.forEach(p => { if (!mapa[p.cod]) mapa[p.cod] = {...p}; });
+    inventario = Object.values(mapa);
+  } else {
+    inventario = BASE.map(p => ({...p}));
+  }
+  localStorage.setItem('inv_tudela', JSON.stringify(inventario));
+}
+
+function guardarInventario() {
+  localStorage.setItem('inv_tudela', JSON.stringify(inventario));
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function irTab(id) {
+  document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('vista-'+id).classList.add('activa');
+  const tabs = ['venta','historial','inventario'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  document.getElementById('barra-cobrar').style.display = id==='venta' ? 'flex' : 'none';
+  if (id === 'historial') renderHistorial();
+  if (id === 'inventario') renderInventario();
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(m) {
+  const el = document.getElementById('toast');
+  el.innerText = m; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ─── ESCÁNER ─────────────────────────────────────────────────────────────────
+function toggleCamara() {
+  camaraActiva ? detenerCamara() : iniciarCamara();
+}
+
+function iniciarCamara() {
+  const wrap = document.getElementById('scanner-wrap');
+  wrap.style.display = 'block';
+  const btn = document.getElementById('btn-camara');
+  btn.textContent = '⏹ DETENER ESCÁNER'; btn.classList.add('activo');
+  Quagga.init({
+    inputStream: {
+      name:"Live", type:"LiveStream",
+      target: document.getElementById('scanner-cam'),
+      constraints: {facingMode:"environment", width:{min:640}, height:{min:480}}
+    },
+    locator:{patchSize:"medium", halfSample:true},
+    numOfWorkers: navigator.hardwareConcurrency || 2,
+    decoder:{readers:["ean_reader","ean_8_reader","code_128_reader","upc_reader"]},
+    locate: true
+  }, err => {
+    if(err){ toast("⚠️ Cámara no disponible"); detenerCamara(); return; }
+    Quagga.start();
+    camaraActiva = true;
+  });
+  Quagga.offDetected(); // evitar listeners duplicados
+  Quagga.onDetected(data => {
+    const cod = data.codeResult.code;
+    if (cod === ultimoCod) return; // pausa anti-duplicado
+    ultimoCod = cod;
+    clearTimeout(timerCod);
+    timerCod = setTimeout(() => ultimoCod = null, 3000);
+    document.getElementById('scanner-info').innerText = "✅ " + cod;
+    const p = inventario.find(x => x.cod === cod);
+    if (p) {
+      añadirAlCarrito(p); toast("✔ " + p.nom);
+    } else {
+      document.getElementById('p-cod').value = cod;
+      document.getElementById('p-nom').focus();
+      toast("🆕 Nuevo: " + cod + " — rellena el nombre");
+      detenerCamara();
+    }
+  });
+}
+
+function detenerCamara() {
+  if (!camaraActiva) return;
+  try {
+    Quagga.offDetected(); // eliminar listener antes de parar
+    Quagga.stop();
+  } catch(e){ console.warn("Quagga stop:", e); }
+  camaraActiva = false;
+  ultimoCod = null;
+  clearTimeout(timerCod);
+  document.getElementById('scanner-wrap').style.display = 'none';
+  const btn = document.getElementById('btn-camara');
+  btn.textContent = '📷 ACTIVAR ESCÁNER'; btn.classList.remove('activo');
+}
+
+// ─── BÚSQUEDA MANUAL ─────────────────────────────────────────────────────────
+function buscar() {
+  const cod = document.getElementById('p-cod').value.trim().replace(/\D/g,'') || document.getElementById('p-cod').value.trim();
+  const p = inventario.find(x => String(x.cod) === String(cod));
+  if (p) {
+    añadirAlCarrito(p);
+    document.getElementById('p-cod').value = '';
+    document.getElementById('p-cod').focus();
+  } else {
+    document.getElementById('p-nom').focus();
+    toast("🆕 Producto nuevo — rellena nombre y precio");
+  }
+}
+
+function añadirManual() {
+  const codEl = document.getElementById('p-cod');
+  const nomEl = document.getElementById('p-nom');
+  const preEl = document.getElementById('p-pre');
+  const cod = codEl.value.trim();
+  const nom = nomEl.value.trim();
+  const pre = parseFloat(preEl.value);
+  const iva = parseInt(document.getElementById('p-iva').value);
+  if (!nom) { toast("⚠️ Escribe el nombre del producto"); nomEl.focus(); return; }
+  if (isNaN(pre) || pre <= 0) { toast("⚠️ Escribe un precio válido"); preEl.focus(); return; }
+  // Guardar en inventario solo si el código es nuevo y no vacío
+  const yaExiste = cod !== '' && inventario.some(x => String(x.cod) === String(cod));
+  if (cod && !yaExiste) {
+    inventario.push({cod, nom, pre, iva});
+    guardarInventario();
+    toast("💾 \"" + nom + "\" guardado en inventario");
+  }
+  añadirAlCarrito({nom, pre, iva});
+  [codEl, nomEl, preEl].forEach(el => el.value = '');
+  codEl.focus();
+}
+
+// ─── CESTA ───────────────────────────────────────────────────────────────────
+function añadirAlCarrito(p) {
+  let it = carrito.find(x => x.nom === p.nom);
+  it ? it.cant++ : carrito.push({...p, cant:1});
+  renderCesta();
+}
+
+function renderCesta() {
+  const tbody = document.getElementById('cuerpo-cesta');
+  tbody.innerHTML = '';
+  let total = 0, items = 0;
+  carrito.forEach((it, i) => {
+    const sub = it.pre * it.cant;
+    total += sub; items += it.cant;
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:800">${it.cant}×</td>
+      <td style="font-size:12px;line-height:1.3">${it.nom}</td>
+      <td style="font-size:11px;color:#64748b">${it.iva}%</td>
+      <td style="text-align:right;font-weight:700">${sub.toFixed(2)}€</td>
+      <td><button class="borrar-item" onclick="quitarItem(${i})">✕</button></td>
+    </tr>`;
+  });
+  document.getElementById('v-total').innerText = total.toFixed(2).replace('.',',') + ' €';
+  document.getElementById('v-items').innerText = items + ' artículos';
+}
+
+function quitarItem(i) {
+  carrito.splice(i, 1);
+  renderCesta();
+}
+
+function limpiarCesta() {
+  if (!carrito.length) return;
+  if (confirm('¿Vaciar la cesta?')) { carrito = []; renderCesta(); }
+}
+
+// ─── COBRAR ───────────────────────────────────────────────────────────────────
+function cobrar() {
+  if (!carrito.length) { toast("La cesta está vacía"); return; }
+  const total = carrito.reduce((a,b) => a + b.pre*b.cant, 0);
+  let ventas = JSON.parse(localStorage.getItem('v_tudela') || '[]');
+  ventas.push({
+    fecha: new Date().toLocaleString('es-ES'),
+    total,
+    items: carrito.map(p => `${p.cant}× ${p.nom}`).join(' | ')
+  });
+  localStorage.setItem('v_tudela', JSON.stringify(ventas));
+  carrito = []; renderCesta();
+  toast("✅ Venta de " + total.toFixed(2).replace('.',',') + " € registrada");
+}
+
+// ─── HISTORIAL ────────────────────────────────────────────────────────────────
+function renderHistorial() {
+  const ventas = JSON.parse(localStorage.getItem('v_tudela') || '[]');
+  const hoy = new Date().toLocaleDateString('es-ES');
+  let totalHoy = 0;
+  const lista = document.getElementById('lista-historial');
+  lista.innerHTML = '';
+  [...ventas].reverse().forEach(v => {
+    if (v.fecha.startsWith(hoy.split('/').join('/'))) totalHoy += v.total;
+    lista.innerHTML += `<div class="sale-row">
+      <div><div style="font-size:12px;font-weight:700;color:#1e293b">${v.items.substring(0,50)}${v.items.length>50?'…':''}</div><small>${v.fecha}</small></div>
+      <div class="monto-h">${v.total.toFixed(2).replace('.',',')} €</div>
+    </div>`;
+  });
+  // Calcular total hoy correctamente
+  const hoyTot = ventas.filter(v => {
+    const f = new Date(v.fecha.split(', ')[0].split('/').reverse().join('-'));
+    return f.toDateString() === new Date().toDateString();
+  }).reduce((a,b) => a+b.total, 0);
+  document.getElementById('hoy-total').innerText = hoyTot.toFixed(2).replace('.',',') + ' €';
+}
+
+// ─── INVENTARIO UI ───────────────────────────────────────────────────────────
+function renderInventario() {
+  const cont = document.getElementById('lista-inventario');
+  cont.innerHTML = '';
+  inventario.forEach((p, i) => {
+    cont.innerHTML += `<div class="prod-row">
+      <div>
+        <div class="nom">${p.nom}</div>
+        <div class="cod-mini">${p.cod || 'Sin código'} · IVA ${p.iva}%</div>
+      </div>
+      <input type="number" value="${p.pre.toFixed(2)}" step="0.01" onchange="cambiarPrecio(${i},this.value)">
+      <button class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:none;cursor:pointer" onclick="borrarProd(${i})">🗑</button>
+    </div>`;
+  });
+}
+
+function cambiarPrecio(i, v) {
+  inventario[i].pre = parseFloat(v) || inventario[i].pre;
+  guardarInventario();
+  toast("💰 Precio actualizado");
+}
+
+function borrarProd(i) {
+  if (confirm('¿Borrar "' + inventario[i].nom + '"?')) {
+    inventario.splice(i,1);
+    guardarInventario();
+    renderInventario();
+    toast("🗑 Borrado");
+  }
+}
+
+// ─── EXCEL ───────────────────────────────────────────────────────────────────
+function descargarExcel() {
+  const ventas = JSON.parse(localStorage.getItem('v_tudela') || '[]');
+  let csv = '\uFEFFFecha;Productos;Total\n';
+  ventas.forEach(v => csv += `"${v.fecha}";"${v.items}";"${v.total.toFixed(2).replace('.',',')} €"\n`);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'Ventas_CasaTudela_' + new Date().toLocaleDateString('es-ES').replace(/\//g,'-') + '.csv';
+  a.click();
+}
+
+// ─── TICKET ───────────────────────────────────────────────────────────────────
+function handlePrint() {
+  if (!carrito.length) { toast("La cesta está vacía"); return; }
+  document.getElementById('t-fecha').innerText = new Date().toLocaleString('es-ES');
+  const tl = document.getElementById('t-lista');
+  tl.innerHTML = '';
+  carrito.forEach(it => {
+    tl.innerHTML += `<tr><td>${it.cant}×</td><td style="width:99%">${it.nom}</td><td style="white-space:nowrap">${(it.pre*it.cant).toFixed(2)}€</td></tr>`;
+  });
+  document.getElementById('t-total').innerText = document.getElementById('v-total').innerText;
+  window.print();
+}
+
+// ─── RELOJ ────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('reloj').innerText = new Date().toLocaleTimeString('es-ES');
+}, 1000);
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+cargarInventario();
+renderCesta();
+irTab('venta');
+</script>
+</body>
+</html>
